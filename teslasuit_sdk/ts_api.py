@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from teslasuit_sdk import ts_loader
+from teslasuit_sdk import ts_device_manager
+from teslasuit_sdk.ts_mapper import TsMapper
+
+
+class TsApi:
+    """
+    An aggregate TESLASUIT API class that contains C API library loader and device manager.
+
+    Attributes
+    ----------
+    lib : CDLL
+        a loaded TESLASUIT C API library object
+    version : TsVersion
+        the version of loaded and used C API
+    device_manager : TsDeviceManager
+        a class that provides access to TESLASUIT devices
+    """
+    def __init__(self, lib_path=None):
+        self.__lib = None
+        self.__initialized = False
+
+        self.__load_library()
+        self.ts_initialize()
+
+        self.mapper = TsMapper(self.__lib)
+        self.__device_manager = ts_device_manager.TsDeviceManager(self.__lib)
+
+    def __load_library(self):
+        loader = ts_loader.TsLoader()
+        self.__lib = loader.load()
+
+    def __unload_library(self):
+        del self.__lib
+
+    def ts_initialize(self):
+        if self.__initialized:
+            return
+
+        self.__lib.ts_initialize()
+        self.__initialized = True
+        print('API initialized')
+
+    def ts_uninitialize(self):
+        if not self.__initialized:
+            return
+
+        self.__lib.ts_uninitialize()
+        self.__initialized = False
+        print('API uninitialized')
+
+    def get_device_manager(self):
+        return self.__device_manager
+
+    def __del__(self):
+        self.ts_uninitialize()
+        self.__unload_library()
