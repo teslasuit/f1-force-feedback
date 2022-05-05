@@ -5,7 +5,7 @@ from ctypes import (c_void_p, c_uint8,
                     Structure, CFUNCTYPE,
                     cast, c_uint)
 
-from ..ts_mapper import Bone2dIndex
+from ..ts_mapper import TsBone2dIndex
 
 import time
 
@@ -122,7 +122,7 @@ class TsMocap:
     def __subscribe_on_raw_data_update(self):
         def __on_raw_updated_callback(device_handle, data_ptr, user_data):
 
-            for bone_index in list(Bone2dIndex):
+            for bone_index in list(TsBone2dIndex):
                 sensor_data = self.get_sensor_data(bone_index, data_ptr)
                 self.__data_raw[bone_index] = sensor_data
 
@@ -135,7 +135,7 @@ class TsMocap:
 
     def __subscribe_on_skeleton_data_updated(self):
         def __on_skeleton_updated_callback(device_ptr, data_ptr, user_data):
-            for bone_index in list(Bone2dIndex):
+            for bone_index in list(TsBone2dIndex):
                 bone_data = self.get_skeleton_data(bone_index, data_ptr)
                 self.__data_skeleton[bone_index] = bone_data
 
@@ -148,7 +148,7 @@ class TsMocap:
 
     def get_sensor_data(self, bone_index, data_ptr):
         bone = TsMocapSensor()
-        self.__lib.ts_mocap_sensor_skeletone_get_bone(c_void_p(data_ptr), c_uint(bone_index), pointer(bone))
+        self.__lib.ts_mocap_sensor_skeleton_get_bone(c_void_p(data_ptr), c_uint(bone_index), pointer(bone))
 
         return bone
 

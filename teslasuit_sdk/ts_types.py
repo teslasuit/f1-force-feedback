@@ -1,7 +1,6 @@
 import uuid
-from ctypes import (Structure, c_uint8,
-                    c_uint32, c_float)
-
+from ctypes import *
+from enum import Enum, unique, IntEnum
 
 class TsDeviceHandle(Structure):
     pass
@@ -27,4 +26,16 @@ class TsVersion(Structure):
 
     def __repr__(self):
         return f'TsVersion({self.major}.{self.minor}.{self.patch}.{self.build})'
+
+@unique
+class TsDeviceType(IntEnum):
+    Undefined = 0
+    Suit = 1
+    Glove = 2
+
+@unique
+class TsDeviceSide(IntEnum):
+    Undefined = 0
+    Left = 1
+    Right = 2
 

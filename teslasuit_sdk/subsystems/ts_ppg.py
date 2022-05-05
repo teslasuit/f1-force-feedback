@@ -21,7 +21,8 @@ class TsHrv(Structure):
                 ('sdsd', c_float),
                 ('rmssd', c_float),
                 ('sd1', c_float),
-                ('sd2', c_float)]
+                ('sd2', c_float),
+                ('hlf', c_float)]
 
 class TsPpgNodeData(Structure):
     _pack_ = 1
@@ -122,6 +123,9 @@ class TsPpg:
 
     def get_data_raw(self):
         return self.__data_raw
+
+    def calibrate(self):
+        self.__lib.ts_ppg_calibrate(self.__device)
 
     def __subscribe_on_data_raw_update(self):
         def __on_hrv_updated(device_ptr, data_ptr, user_data):

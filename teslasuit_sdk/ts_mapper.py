@@ -15,7 +15,7 @@ class TsVec2f(Structure):
 
 
 @unique
-class Mapping2dVersion(IntEnum):
+class TsMapping2dVersion(IntEnum):
     Undefined = 0
     Mapping_4_5_4 = 1
     Mapping_4_5_5 = 2
@@ -34,7 +34,7 @@ class Mapping2dVersion(IntEnum):
 
 
 @unique
-class Layout2dType(IntEnum):
+class TsLayout2dType(IntEnum):
     Undefined = 0
     Electric = 1
     Temperature = 2
@@ -44,14 +44,14 @@ class Layout2dType(IntEnum):
 
 
 @unique
-class Layout2dElementType(IntEnum):
+class TsLayout2dElementType(IntEnum):
     Undefined = 0
     Cell = 1
     Channel = 2
 
 
 @unique
-class Bone2dIndex(IntEnum):
+class TsBone2dIndex(IntEnum):
     Hips = 0
     LeftUpperLeg = 1
     RightUpperLeg = 2
@@ -105,7 +105,7 @@ class Bone2dIndex(IntEnum):
 
 
 @unique
-class Bone2dSide(IntEnum):
+class TsBone2dSide(IntEnum):
     Undefined = 0
     Front = 1
     Back = 2
@@ -246,3 +246,16 @@ class TsMapper:
                                                         c_uint64(number_of_points))
 
         return [*points]
+
+
+    # mapping utils
+
+    def get_layout_by_type(self, mapping, layout_type, layout_element_type):
+        layouts = self.get_layouts(mapping)
+        for layout in layouts:
+            if self.get_layout_type(layout) == layout_type and self.get_layout_element_type(layout) == layout_element_type:
+                return layout
+        return None
+
+    def get_haptic_electric_channel_layout(self, mapping):
+        return self.get_layout_by_type(mapping, TsLayout2dType.Electric.value, TsLayout2dElementType.Channel.value)

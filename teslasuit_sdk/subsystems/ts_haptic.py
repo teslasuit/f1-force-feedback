@@ -14,9 +14,6 @@ class TsHapticParamType(Enum):
     Temperature = 4
 
 
-DEFAULT_LAYOUT_INDEX = 0
-
-
 class TsHapticParam(Structure):
     _pack_ = 1
     _fields_ = [('type', c_uint32),
@@ -245,3 +242,15 @@ class TsHapticPlayer:
     def set_material_channel_impact(self, channel_id, impact, playable_id):
         self.__lib.ts_haptic_set_material_channel_impact(self.__device, pointer(channel_id),
                                                          c_float(impact), c_uint64(playable_id))
+
+    # haptic utils
+
+    def create_touch_parameters(self, period_ms, amplitude, pulse_width):
+        return [TsHapticParam(TsHapticParamType.Period.value, period_ms),
+                TsHapticParam(TsHapticParamType.Amplitude.value, amplitude),
+                TsHapticParam(TsHapticParamType.PulseWidth.value, pulse_width)]
+
+    def create_touch_multipliers(self, period_ms_m, amplitude_m, pulse_width_m):
+        return [TsHapticParamMultiplier(TsHapticParamType.Period.value, period_ms_m),
+                TsHapticParamMultiplier(TsHapticParamType.Amplitude.value, amplitude_m),
+                TsHapticParamMultiplier(TsHapticParamType.PulseWidth.value, pulse_width_m)]
