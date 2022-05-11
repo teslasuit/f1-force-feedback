@@ -16,7 +16,7 @@ class FeedbackEventType(IntEnum):
     Vibration = 4
     Shaking = 5
     Slip = 6
-    Lag = 7    
+    Lag = 7
 
 @unique
 class FeedbackEventDirection(IntEnum):
