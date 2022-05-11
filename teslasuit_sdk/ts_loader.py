@@ -14,7 +14,7 @@ class TsLoader:
     def __init__(self, lib_path=None):
         self.__lib = None
         assert sys.maxsize == 2**63 - 1, 'Only 64-bit systems are supported.'
-        self.__path = lib_path if lib_path is not None else os.getenv('TESLASUIT_CAPI_LIB')
+        self.__path = lib_path if lib_path is not None else os.getenv('TESLASUIT_API_LIB_PATH')
 
     def load(self):
         if self.__path is not None and os.path.isfile(self.__path):
