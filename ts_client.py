@@ -2,6 +2,9 @@ from teslasuit_sdk import ts_api
 from teslasuit_sdk.subsystems import ts_haptic
 from teslasuit_sdk.ts_mapper import TsBone2dIndex
 
+import ff_event
+import ts_playlist
+
 class TsClient:
     def init(self, lib_path=None):
         print("Connecting teslasuit device...")
@@ -10,6 +13,9 @@ class TsClient:
         self.player = device.haptic
         self.bones = api.mapper.get_layout_bones(api.mapper.get_haptic_electric_channel_layout(device.get_mapping()))
         print("Device connected.")
+        print("Loading TS assets...")
+        self.playlist = ts_playlist.TsPlaylist(api, device, "ts_assets")
+        print("TS assets loaded.")
 
     def play_touch(self, params, channels, duration_ms):
         playable_id = player.create_touch(params, channels, duration_ms)
@@ -21,3 +27,7 @@ class TsClient:
         duration_ms = 1000
         self.play_touch(params, bones, duration_ms)
         time.sleep(duration_ms / 1000)
+
+    def process_ff_events(self, events):
+        for event in events:
+            print("Event:", event.type, event.intensity_percent, event.frequency_percent)

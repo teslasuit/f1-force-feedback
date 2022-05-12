@@ -4,50 +4,12 @@ from ctypes import *
 from enum import IntEnum, unique
 from collections import namedtuple
 
+from ff_event import FeedbackEvent, FeedbackEventType, FeedbackEventDirection, FeedbackEventLocation
+
 PORT = 20777
 MAX_PACKET_SIZE = 65535
 
-@unique
-class FeedbackEventType(IntEnum):
-    Undefined = 0
-    Acceleration = 1
-    Breaking = 2
-    GForce = 3
-    Vibration = 4
-    Shaking = 5
-    Slip = 6
-    Lag = 7
-
-@unique
-class FeedbackEventDirection(IntEnum):
-    Undefined = 0
-    Front = 1
-    Back = 2
-    Left = 3
-    Right = 4
-    Up = 5
-    Down = 6
-
-@unique
-class FeedbackEventLocation(IntEnum):
-    Undefined = 0
-    FrontLeftDown = 1
-    FrontRightDown = 2
-    RearLeftDown = 3
-    RearRightDown = 4
-    FrontLeftUp = 1
-    FrontRightUp = 2
-    RearLeftUp = 3
-    RearRightUp = 4
-
-class FeedbackEvent:
-    def __init__(self):
-        self.enable = True
-        self.type = FeedbackEventType.Undefined
-        self.direction = FeedbackEventDirection.Undefined
-        self.location = FeedbackEventLocation.Undefined
-        self.intensity_percent = float(0)
-        self.frequency_percent = float(0)
+GFORCE_THRESHOLD = 0.1
 
 class F1Client:
     def init(self):
@@ -55,6 +17,7 @@ class F1Client:
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.client.bind(("", PORT))
+        self.event_callback = None
         print("Game connected.")
 
     def set_event_callback(self, callback):
@@ -66,25 +29,40 @@ class F1Client:
         memmove(addressof(header), self.packet[0:header.get_size()], header.get_size())
         self.events = list()
         #print("Game packet received [id, frame, timestamp]:", str(header.packetId), ",", str(header.frameIdentifier), ",", str(header.sessionTime), ".")
-        #print("-------------------------")
         if header.packetId == PacketId.Motion:
             self.process_motion(self.packet, header.get_size(), header.playerCarIndex)
         if header.packetId == PacketId.CarTelemetry:
             self.process_telemetry(self.packet, header.get_size(), header.playerCarIndex)
+        self.prev_events = self.events
         if self.event_callback != None:
             self.event_callback(self.events)
-
 
     def process_motion(self, packet, offset, player_car_index):
         motion_data = PacketMotionData()
         memmove(addressof(motion_data), packet[offset:motion_data.get_size()], motion_data.get_size())
-        #print("Wheel speed:", motion_data.wheelSpeed[0])
+        gForceLongitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal
+        #gForceLateral = motion_data.carMotionData[player_car_index].gForceLateral
+        #gForceVertical = motion_data.carMotionData[player_car_index].gForceVertical
+        #print("G Forces:", "%.2f" % gForceLongitudinal, "%.2f" % gForceLateral, "%.2f" % gForceVertical)
+        if gForceLongitudinal > GFORCE_THRESHOLD:
+            self.events.append(FeedbackEvent(type=FeedbackEventType.Acceleration, intensity_percent=normalize(gForceLongitudinal, float(0), float(1.8))))
+        elif gForceLongitudinal < -GFORCE_THRESHOLD:
+            self.events.append(FeedbackEvent(type=FeedbackEventType.Breaking, intensity_percent=normalize(-gForceLongitudinal, float(0), float(4))))
 
     def process_telemetry(self, packet, offset, player_car_index):
         telemetry_data = PacketCarTelemetryData()
         memmove(addressof(telemetry_data), packet[offset:telemetry_data.get_size()], telemetry_data.get_size())
-        print("Speed:", telemetry_data.carTelemetryData[player_car_index].speed)
+        rpm = telemetry_data.carTelemetryData[player_car_index].engineRPM
+        self.events.append(FeedbackEvent(type=FeedbackEventType.Vibration, frequency_percent=normalize(rpm, float(0), float(11000))))
 
+
+def normalize(value, min, max):
+    if (value > max):
+        return float(1)
+    elif (value < min):
+        return float(0)
+    else:
+        return float(value - min) / float(max - min)
 
 #######################################################################################################################
 

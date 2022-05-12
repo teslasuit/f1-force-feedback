@@ -5,11 +5,12 @@ class F1TeslatuitForceFeedback:
     def start(self):
         self.f1_client = f1_client.F1Client()
         self.ts_client = ts_client.TsClient()
-
         self.f1_client.init()
-        #self.ts_client.init("C:/Users/v.avdeev/Documents/Projects/teslasuit-studio/bin/Debug/teslasuit_api.dll")
+        self.f1_client.set_event_callback(self.ts_client.process_ff_events)
+        self.ts_client.init()
         while True:
             self.f1_client.process()
+
 
 ff = F1TeslatuitForceFeedback()
 ff.start()
