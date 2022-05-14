@@ -2,8 +2,8 @@ from teslasuit_sdk import ts_api
 from teslasuit_sdk.subsystems import ts_haptic
 from teslasuit_sdk.ts_mapper import TsBone2dIndex
 
-import ff_event
 import ts_playlist
+from ff_event import FeedbackEvent, FeedbackEventType, FeedbackEventDirection, FeedbackEventLocation
 
 class TsClient:
     def init(self, lib_path=None):
@@ -29,5 +29,22 @@ class TsClient:
         time.sleep(duration_ms / 1000)
 
     def process_ff_events(self, events):
+        asset = None
         for event in events:
-            print("Event:", event.type, event.intensity_percent, event.frequency_percent)
+            asset_name = self.get_asset_name(event)
+            if asset_name == None:
+                continue
+            if event.is_enable:
+                self.playlist.play(asset_name, event.is_continue, event.intensity_percent, event.frequency_percent)
+            else:
+                self.playlist.stop(asset_name)
+
+    def get_asset_name(self, event):
+        if event.type == FeedbackEventType.Acceleration:
+            return "acceleration.ts_asset"
+        elif event.type == FeedbackEventType.Breaking:
+            return "breaking.ts_asset"
+        elif event.type == FeedbackEventType.Vibration:
+            return "engine_rpm.ts_asset"
+        else:
+            return None

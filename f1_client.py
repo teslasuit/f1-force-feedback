@@ -16,7 +16,12 @@ class F1Client:
         print("Connecting to F1 game...")
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.client.bind(("", PORT))
+        self.motion_events = list()
+        self.telemetry_events = list()
+        self.prev_motion_events = list()        
+        self.prev_telemetry_events = list()
         self.event_callback = None
         print("Game connected.")
 
@@ -24,36 +29,64 @@ class F1Client:
         self.event_callback = callback
 
     def process(self):
+        # parse packet header
         self.packet, addr = self.client.recvfrom(MAX_PACKET_SIZE)
         header = PacketHeader()
         memmove(addressof(header), self.packet[0:header.get_size()], header.get_size())
-        self.events = list()
-        #print("Game packet received [id, frame, timestamp]:", str(header.packetId), ",", str(header.frameIdentifier), ",", str(header.sessionTime), ".")
+        # collect events and notify
         if header.packetId == PacketId.Motion:
             self.process_motion(self.packet, header.get_size(), header.playerCarIndex)
         if header.packetId == PacketId.CarTelemetry:
             self.process_telemetry(self.packet, header.get_size(), header.playerCarIndex)
-        self.prev_events = self.events
-        if self.event_callback != None:
-            self.event_callback(self.events)
 
     def process_motion(self, packet, offset, player_car_index):
+        # parse motion data
         motion_data = PacketMotionData()
         memmove(addressof(motion_data), packet[offset:motion_data.get_size()], motion_data.get_size())
-        gForceLongitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal
-        #gForceLateral = motion_data.carMotionData[player_car_index].gForceLateral
-        #gForceVertical = motion_data.carMotionData[player_car_index].gForceVertical
-        #print("G Forces:", "%.2f" % gForceLongitudinal, "%.2f" % gForceLateral, "%.2f" % gForceVertical)
+        # clear event list
+        self.motion_events = list()
+        # generate events
+        gForceLongitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal       
         if gForceLongitudinal > GFORCE_THRESHOLD:
-            self.events.append(FeedbackEvent(type=FeedbackEventType.Acceleration, intensity_percent=normalize(gForceLongitudinal, float(0), float(1.8))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Acceleration, intensity_percent=normalize(gForceLongitudinal, float(0), float(1.8))))
         elif gForceLongitudinal < -GFORCE_THRESHOLD:
-            self.events.append(FeedbackEvent(type=FeedbackEventType.Breaking, intensity_percent=normalize(-gForceLongitudinal, float(0), float(4))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Breaking, intensity_percent=normalize(-gForceLongitudinal, float(0), float(4))))
+        # look for finished events and disable them
+        self.process_finished_events(self.motion_events, self.prev_motion_events)
+        # store as prev events
+        self.prev_motion_events = self.motion_events
+        # notify about events
+        if self.event_callback != None:
+            self.event_callback(self.motion_events)
 
     def process_telemetry(self, packet, offset, player_car_index):
+        # parse telemetry data
         telemetry_data = PacketCarTelemetryData()
         memmove(addressof(telemetry_data), packet[offset:telemetry_data.get_size()], telemetry_data.get_size())
+        # clear event list
+        self.telemetry_events = list()
+        # generate events
         rpm = telemetry_data.carTelemetryData[player_car_index].engineRPM
-        self.events.append(FeedbackEvent(type=FeedbackEventType.Vibration, frequency_percent=normalize(rpm, float(0), float(11000))))
+        self.telemetry_events.append(FeedbackEvent(type=FeedbackEventType.Vibration, frequency_percent=normalize(rpm, float(0), float(11000))))
+        # look for finished events and disable them
+        self.process_finished_events(self.telemetry_events, self.prev_telemetry_events)
+        # store as prev events
+        self.prev_telemetry_events = self.telemetry_events
+        # notify about events
+        if self.event_callback != None:
+            self.event_callback(self.telemetry_events)
+
+    def process_finished_events(self, events, prev_events):
+        for prev_event in prev_events:
+            if not prev_event.is_enable:
+                continue
+            continue_event = False
+            for event in events:
+                if event.type == prev_event.type:
+                    continue_event = True
+                    break
+            if not continue_event:
+                events.append(FeedbackEvent(type=prev_event.type, is_enable=False))
 
 
 def normalize(value, min, max):

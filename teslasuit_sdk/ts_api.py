@@ -5,7 +5,7 @@ import time
 from teslasuit_sdk import ts_loader
 from teslasuit_sdk import ts_device_manager
 from teslasuit_sdk.ts_mapper import TsMapper
-
+from teslasuit_sdk.ts_asset_manager import TsAssetManager
 
 class TsApi:
     """
@@ -28,6 +28,7 @@ class TsApi:
         self.ts_initialize()
 
         self.mapper = TsMapper(self.__lib)
+        self.asset_manager = TsAssetManager(self.__lib)
         self.__device_manager = ts_device_manager.TsDeviceManager(self.__lib)
 
     def __load_library(self, lib_path=None):

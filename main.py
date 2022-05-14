@@ -11,6 +11,5 @@ class F1TeslatuitForceFeedback:
         while True:
             self.f1_client.process()
 
-
 ff = F1TeslatuitForceFeedback()
 ff.start()

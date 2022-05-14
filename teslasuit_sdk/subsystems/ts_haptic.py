@@ -204,14 +204,14 @@ class TsHapticPlayer:
         return multipliers
 
     def set_playable_multipliers(self, playable_id, multipliers):
-        number = self.get_number_of_playable_multipliers(playable_id)
-        if len(multipliers) != number:
-            print(
-                f'TsHapticPlayer set_playable_multipliers not valid argument: {multipliers}; expecting {number} multipliers')
-            return
-        playable_multipliers = (TsHapticParamMultiplier * number.value)(*multipliers)
+        number = len(multipliers)
+        #number = self.get_number_of_playable_multipliers(playable_id)
+        #if len(multipliers) != number:
+        #    print(f'TsHapticPlayer set_playable_multipliers not valid argument: {multipliers}; expecting {number} multipliers')
+        #    return
+        playable_multipliers = (TsHapticParamMultiplier * number)(*multipliers)
         self.__lib.ts_haptic_set_playable_multipliers(self.__device, c_uint64(playable_id),
-                                                      pointer(playable_multipliers), c_uint64(number.value))
+                                                      pointer(playable_multipliers), c_uint64(number))
 
     def get_playable_local_time(self, playable_id):
         local_time = c_uint64(0)
