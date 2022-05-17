@@ -11,7 +11,7 @@ MAX_PACKET_SIZE = 65535
 
 GFORCE_THRESHOLD = 0.1
 WHEEL_SLIP_THRESHOLD = 0.1
-SUSPENSION_ACCELERATION_THRESHOLD = 8000
+SUSPENSION_ACCELERATION_THRESHOLD = 6000
 
 class F1Client:
     def init(self):
@@ -58,9 +58,9 @@ class F1Client:
         # side g-forces
         g_force_lateral = motion_data.carMotionData[player_car_index].gForceLateral    
         if g_force_lateral > GFORCE_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Left, intensity_percent=normalize(g_force_lateral, float(0), float(3.5))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Right, intensity_percent=normalize(g_force_lateral, float(0), float(3.5))))
         elif g_force_lateral < -GFORCE_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Right, intensity_percent=normalize(-g_force_lateral, float(0), float(3.5))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Left, intensity_percent=normalize(-g_force_lateral, float(0), float(3.5))))
         # wheel slip
         wheel_slip_rl = abs(motion_data.wheelSlip[0])
         wheel_slip_rr = abs(motion_data.wheelSlip[1])
@@ -80,13 +80,13 @@ class F1Client:
         s_acc_fl = abs(motion_data.suspensionAcceleration[2])
         s_acc_fr = abs(motion_data.suspensionAcceleration[3])
         if s_acc_rl > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
         if s_acc_rr > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
         if s_acc_fl > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
         if s_acc_fr > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
 
         # look for finished events and disable them
         self.process_finished_events(self.motion_events, self.prev_motion_events)
@@ -121,11 +121,11 @@ class F1Client:
                 continue
             continue_event = False
             for event in events:
-                if event.type == prev_event.type:
+                if event.is_same(prev_event):
                     continue_event = True
                     break
             if not continue_event:
-                events.append(FeedbackEvent(type=prev_event.type, is_enable=False))
+                events.append(FeedbackEvent(type=prev_event.type, direction=prev_event.direction, location=prev_event.location, is_enable=False))
 
 
 def normalize(value, min, max):

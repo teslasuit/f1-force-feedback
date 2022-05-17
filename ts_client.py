@@ -42,31 +42,31 @@ class TsClient:
     def get_asset_name(self, event):
         if event.type == FeedbackEventType.GForce:
             if event.direction == FeedbackEventDirection.Back:
-                return "acceleration.ts_asset"
+                return "_g_force_back.ts_asset"
             elif event.direction == FeedbackEventDirection.Front:
-                return "breaking.ts_asset"
+                return "_g_force_front.ts_asset"
             elif event.direction == FeedbackEventDirection.Left:
-                return "g_force_left.ts_asset"
+                return "_g_force_left.ts_asset"
             elif event.direction == FeedbackEventDirection.Right:
-                return "g_force_right.ts_asset"
+                return "_g_force_right.ts_asset"
         elif event.type == FeedbackEventType.Vibration:
-            return "engine_rpm.ts_asset"
+            return "_rpm_vibration.ts_asset"
         elif event.type == FeedbackEventType.Slip:
-            if event.location == FeedbackEventLocation.FrontLeftDown: # pw[30-40] freq:150
-                return "slip_fl.ts_asset"
+            if event.location == FeedbackEventLocation.FrontLeftDown:
+                return "_slip_fl.ts_asset"
             elif event.location == FeedbackEventLocation.FrontRightDown:
-                return "slip_fr.ts_asset"
+                return "_slip_fr.ts_asset"
             elif event.location == FeedbackEventLocation.RearLeftDown:
-                return "slip_rl.ts_asset"
+                return "_slip_rl.ts_asset"
             elif event.location == FeedbackEventLocation.RearRightDown:
-                return "slip_rr.ts_asset"
+                return "_slip_rr.ts_asset"
         elif event.type == FeedbackEventType.Shaking:
-            if event.location == FeedbackEventLocation.FrontLeftDown: # pw[80-90] freq:10
-                return "shaking_fl.ts_asset"
+            if event.location == FeedbackEventLocation.FrontLeftDown:
+                return "_shaking_fl.ts_asset"
             elif event.location == FeedbackEventLocation.FrontRightDown:
-                return "shaking_fr.ts_asset"
+                return "_shaking_fr.ts_asset"
             elif event.location == FeedbackEventLocation.RearLeftDown:
-                return "shaking_rl.ts_asset"
+                return "_shaking_rl.ts_asset"
             elif event.location == FeedbackEventLocation.RearRightDown:
-                return "shaking_rr.ts_asset"
+                return "_shaking_rr.ts_asset"
         return None

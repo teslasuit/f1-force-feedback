@@ -39,3 +39,6 @@ class FeedbackEvent:
         self.location = location
         self.intensity_percent = intensity_percent
         self.frequency_percent = frequency_percent
+
+    def is_same(self, event):
+        return self.type == event.type and self.direction == event.direction and self.location == event.location
