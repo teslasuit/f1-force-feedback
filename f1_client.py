@@ -9,7 +9,7 @@ from ff_event import FeedbackEvent, FeedbackEventType, FeedbackEventDirection, F
 PORT = 20777
 MAX_PACKET_SIZE = 65535
 
-GFORCE_THRESHOLD = 0.1
+GFORCE_THRESHOLD = 0.2
 WHEEL_SLIP_THRESHOLD = 0.1
 SUSPENSION_ACCELERATION_THRESHOLD = 6000
 
@@ -80,13 +80,13 @@ class F1Client:
         s_acc_fl = abs(motion_data.suspensionAcceleration[2])
         s_acc_fr = abs(motion_data.suspensionAcceleration[3])
         if s_acc_rl > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
         if s_acc_rr > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
         if s_acc_fl > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
         if s_acc_fr > SUSPENSION_ACCELERATION_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(50000))))
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
 
         # look for finished events and disable them
         self.process_finished_events(self.motion_events, self.prev_motion_events)
