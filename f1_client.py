@@ -67,7 +67,9 @@ class F1Client:
         self.telemetry_events = list()
         # generate events
         rpm = telemetry_data.carTelemetryData[player_car_index].engineRPM
-        self.telemetry_events.append(FeedbackEvent(type=FeedbackEventType.Vibration, frequency_percent=normalize(rpm, float(0), float(11000))))
+        rpm_percent = normalize(rpm, float(4400), float(11000))
+        f_percent = normalize_period_percent(rpm_percent, float(6666), float(16666))
+        self.telemetry_events.append(FeedbackEvent(type=FeedbackEventType.Vibration, frequency_percent=f_percent))
         # look for finished events and disable them
         self.process_finished_events(self.telemetry_events, self.prev_telemetry_events)
         # store as prev events
@@ -96,6 +98,11 @@ def normalize(value, min, max):
         return float(0)
     else:
         return float(value - min) / float(max - min)
+
+def normalize_period_percent(period_percent, period_min, period_max):
+    target_period = ((float(1) - period_percent) * (period_max - period_min)) + period_min
+    percent = target_period / period_max
+    return percent
 
 #######################################################################################################################
 
