@@ -40,11 +40,33 @@ class TsClient:
                 self.playlist.stop(asset_name)
 
     def get_asset_name(self, event):
-        if event.type == FeedbackEventType.Acceleration:
-            return "acceleration.ts_asset"
-        elif event.type == FeedbackEventType.Breaking:
-            return "breaking.ts_asset"
+        if event.type == FeedbackEventType.GForce:
+            if event.direction == FeedbackEventDirection.Back:
+                return "acceleration.ts_asset"
+            elif event.direction == FeedbackEventDirection.Front:
+                return "breaking.ts_asset"
+            elif event.direction == FeedbackEventDirection.Left:
+                return "g_force_left.ts_asset"
+            elif event.direction == FeedbackEventDirection.Right:
+                return "g_force_right.ts_asset"
         elif event.type == FeedbackEventType.Vibration:
             return "engine_rpm.ts_asset"
-        else:
-            return None
+        elif event.type == FeedbackEventType.Slip:
+            if event.location == FeedbackEventLocation.FrontLeftDown: # pw[30-40] freq:150
+                return "slip_fl.ts_asset"
+            elif event.location == FeedbackEventLocation.FrontRightDown:
+                return "slip_fr.ts_asset"
+            elif event.location == FeedbackEventLocation.RearLeftDown:
+                return "slip_rl.ts_asset"
+            elif event.location == FeedbackEventLocation.RearRightDown:
+                return "slip_rr.ts_asset"
+        elif event.type == FeedbackEventType.Shaking:
+            if event.location == FeedbackEventLocation.FrontLeftDown: # pw[80-90] freq:10
+                return "shaking_fl.ts_asset"
+            elif event.location == FeedbackEventLocation.FrontRightDown:
+                return "shaking_fr.ts_asset"
+            elif event.location == FeedbackEventLocation.RearLeftDown:
+                return "shaking_rl.ts_asset"
+            elif event.location == FeedbackEventLocation.RearRightDown:
+                return "shaking_rr.ts_asset"
+        return None

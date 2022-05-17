@@ -10,10 +10,12 @@ PORT = 20777
 MAX_PACKET_SIZE = 65535
 
 GFORCE_THRESHOLD = 0.1
+WHEEL_SLIP_THRESHOLD = 0.1
+SUSPENSION_ACCELERATION_THRESHOLD = 8000
 
 class F1Client:
     def init(self):
-        print("Connecting to F1 game...")
+        print("Connecting to F1 game socket...")
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -23,7 +25,7 @@ class F1Client:
         self.prev_motion_events = list()        
         self.prev_telemetry_events = list()
         self.event_callback = None
-        print("Game connected.")
+        print("Game socket connected.")
 
     def set_event_callback(self, callback):
         self.event_callback = callback
@@ -46,11 +48,46 @@ class F1Client:
         # clear event list
         self.motion_events = list()
         # generate events
-        gForceLongitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal       
-        if gForceLongitudinal > GFORCE_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Acceleration, intensity_percent=normalize(gForceLongitudinal, float(0), float(1.8))))
-        elif gForceLongitudinal < -GFORCE_THRESHOLD:
-            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Breaking, intensity_percent=normalize(-gForceLongitudinal, float(0), float(4))))
+
+        # acceleration and breaking
+        g_force_longitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal       
+        if g_force_longitudinal > GFORCE_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Back, intensity_percent=normalize(g_force_longitudinal, float(0), float(1.8))))
+        elif g_force_longitudinal < -GFORCE_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Front,  intensity_percent=normalize(-g_force_longitudinal, float(0), float(4))))
+        # side g-forces
+        g_force_lateral = motion_data.carMotionData[player_car_index].gForceLateral    
+        if g_force_lateral > GFORCE_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Left, intensity_percent=normalize(g_force_lateral, float(0), float(3.5))))
+        elif g_force_lateral < -GFORCE_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Right, intensity_percent=normalize(-g_force_lateral, float(0), float(3.5))))
+        # wheel slip
+        wheel_slip_rl = abs(motion_data.wheelSlip[0])
+        wheel_slip_rr = abs(motion_data.wheelSlip[1])
+        wheel_slip_fl = abs(motion_data.wheelSlip[2])
+        wheel_slip_fr = abs(motion_data.wheelSlip[3])
+        if wheel_slip_rl > WHEEL_SLIP_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.RearLeftDown, intensity_percent=wheel_slip_rl))
+        if wheel_slip_rr > WHEEL_SLIP_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.RearRightDown, intensity_percent=wheel_slip_rr))
+        if wheel_slip_fl > WHEEL_SLIP_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=wheel_slip_fl))
+        if wheel_slip_fr > WHEEL_SLIP_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.FrontRightDown, intensity_percent=wheel_slip_fr))
+        # suspension shaking
+        s_acc_rl = abs(motion_data.suspensionAcceleration[0])
+        s_acc_rr = abs(motion_data.suspensionAcceleration[1])
+        s_acc_fl = abs(motion_data.suspensionAcceleration[2])
+        s_acc_fr = abs(motion_data.suspensionAcceleration[3])
+        if s_acc_rl > SUSPENSION_ACCELERATION_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+        if s_acc_rr > SUSPENSION_ACCELERATION_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+        if s_acc_fl > SUSPENSION_ACCELERATION_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+        if s_acc_fr > SUSPENSION_ACCELERATION_THRESHOLD:
+            self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(8000), float(100000))))
+
         # look for finished events and disable them
         self.process_finished_events(self.motion_events, self.prev_motion_events)
         # store as prev events

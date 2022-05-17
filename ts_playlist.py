@@ -22,7 +22,6 @@ class TsPlaylist:
                 path = os.path.join(assets_path, file)
                 print("Load asset: ", path)
                 asset_handle = self.asset_manager.load_asset_from_path(path)
-                print("Create playable")
                 playable_id = self.player.create_playable(asset_handle, True)
                 self.assets[file] = TsAssetInfo(file, asset_handle, playable_id)
                 

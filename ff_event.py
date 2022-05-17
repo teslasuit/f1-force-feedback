@@ -3,13 +3,10 @@ from enum import IntEnum, unique
 @unique
 class FeedbackEventType(IntEnum):
     Undefined = 0
-    Acceleration = 1
-    Breaking = 2
-    GForce = 3
-    Vibration = 4
-    Shaking = 5
-    Slip = 6
-    Lag = 7
+    GForce = 1
+    Vibration = 2
+    Shaking = 3
+    Slip = 4
 
 @unique
 class FeedbackEventDirection(IntEnum):
