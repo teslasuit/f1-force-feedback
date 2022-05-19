@@ -1,4 +1,6 @@
+import time
 import socket
+import threading
 from struct import *
 from ctypes import *
 from enum import IntEnum, unique
@@ -9,9 +11,10 @@ from ff_event import FeedbackEvent, FeedbackEventType, FeedbackEventDirection, F
 PORT = 20777
 MAX_PACKET_SIZE = 65535
 
-GFORCE_THRESHOLD = 0.2
-WHEEL_SLIP_THRESHOLD = 0.1
-SUSPENSION_ACCELERATION_THRESHOLD = 6000
+GFORCE_THRESHOLD_N = 0.2
+WHEEL_SLIP_THRESHOLD_N = 0.1
+SUSPENSION_ACCELERATION_THRESHOLD_ACC = 6000
+STOP_EVENTS_DELAY_S = 0.2
 
 class F1Client:
     def init(self):
@@ -20,12 +23,36 @@ class F1Client:
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.client.bind(("", PORT))
+
         self.motion_events = list()
         self.telemetry_events = list()
         self.prev_motion_events = list()        
         self.prev_telemetry_events = list()
         self.event_callback = None
+
+        self.is_running = True
+        self.last_motion_event_time = time.time()
+        self.last_telemetry_event_time = time.time()
+        self.thread = threading.Thread(None, self.__update_state)
+        self.thread.start()
         print("Game socket connected.")
+
+    def __del__(self):
+        self.stop()
+
+    def stop(self):
+        self.stop_motion_events()
+        self.stop_telemetry_events()
+        self.is_running = False
+        self.thread.join()
+
+    def __update_state(self):
+        while self.is_running:
+            if time.time() - self.last_motion_event_time > STOP_EVENTS_DELAY_S:
+                self.stop_events(self.motion_events, self.prev_motion_events)
+            if time.time() - self.last_telemetry_event_time > STOP_EVENTS_DELAY_S:
+                self.stop_events(self.telemetry_events, self.prev_telemetry_events)
+            time.sleep(0.1)
 
     def set_event_callback(self, callback):
         self.event_callback = callback
@@ -51,47 +78,49 @@ class F1Client:
 
         # acceleration and breaking
         g_force_longitudinal = motion_data.carMotionData[player_car_index].gForceLongitudinal       
-        if g_force_longitudinal > GFORCE_THRESHOLD:
+        if g_force_longitudinal > GFORCE_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Back, intensity_percent=normalize(g_force_longitudinal, float(0), float(1.8))))
-        elif g_force_longitudinal < -GFORCE_THRESHOLD:
+        elif g_force_longitudinal < -GFORCE_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Front,  intensity_percent=normalize(-g_force_longitudinal, float(0), float(4))))
         # side g-forces
         g_force_lateral = motion_data.carMotionData[player_car_index].gForceLateral    
-        if g_force_lateral > GFORCE_THRESHOLD:
+        if g_force_lateral > GFORCE_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Right, intensity_percent=normalize(g_force_lateral, float(0), float(3.5))))
-        elif g_force_lateral < -GFORCE_THRESHOLD:
+        elif g_force_lateral < -GFORCE_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.GForce, direction=FeedbackEventDirection.Left, intensity_percent=normalize(-g_force_lateral, float(0), float(3.5))))
         # wheel slip
         wheel_slip_rl = abs(motion_data.wheelSlip[0])
         wheel_slip_rr = abs(motion_data.wheelSlip[1])
         wheel_slip_fl = abs(motion_data.wheelSlip[2])
         wheel_slip_fr = abs(motion_data.wheelSlip[3])
-        if wheel_slip_rl > WHEEL_SLIP_THRESHOLD:
+        if wheel_slip_rl > WHEEL_SLIP_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.RearLeftDown, intensity_percent=wheel_slip_rl))
-        if wheel_slip_rr > WHEEL_SLIP_THRESHOLD:
+        if wheel_slip_rr > WHEEL_SLIP_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.RearRightDown, intensity_percent=wheel_slip_rr))
-        if wheel_slip_fl > WHEEL_SLIP_THRESHOLD:
+        if wheel_slip_fl > WHEEL_SLIP_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=wheel_slip_fl))
-        if wheel_slip_fr > WHEEL_SLIP_THRESHOLD:
+        if wheel_slip_fr > WHEEL_SLIP_THRESHOLD_N:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Slip, location=FeedbackEventLocation.FrontRightDown, intensity_percent=wheel_slip_fr))
         # suspension shaking
         s_acc_rl = abs(motion_data.suspensionAcceleration[0])
         s_acc_rr = abs(motion_data.suspensionAcceleration[1])
         s_acc_fl = abs(motion_data.suspensionAcceleration[2])
         s_acc_fr = abs(motion_data.suspensionAcceleration[3])
-        if s_acc_rl > SUSPENSION_ACCELERATION_THRESHOLD:
+        if s_acc_rl > SUSPENSION_ACCELERATION_THRESHOLD_ACC:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
-        if s_acc_rr > SUSPENSION_ACCELERATION_THRESHOLD:
+        if s_acc_rr > SUSPENSION_ACCELERATION_THRESHOLD_ACC:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.RearRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
-        if s_acc_fl > SUSPENSION_ACCELERATION_THRESHOLD:
+        if s_acc_fl > SUSPENSION_ACCELERATION_THRESHOLD_ACC:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontLeftDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
-        if s_acc_fr > SUSPENSION_ACCELERATION_THRESHOLD:
+        if s_acc_fr > SUSPENSION_ACCELERATION_THRESHOLD_ACC:
             self.motion_events.append(FeedbackEvent(type=FeedbackEventType.Shaking, location=FeedbackEventLocation.FrontRightDown, intensity_percent=normalize(s_acc_rl, float(6000), float(100000))))
 
         # look for finished events and disable them
         self.process_finished_events(self.motion_events, self.prev_motion_events)
         # store as prev events
-        self.prev_motion_events = self.motion_events
+        self.prev_motion_events = self.motion_events.copy()
+        # register event time
+        self.last_motion_event_time = time.time()
         # notify about events
         if self.event_callback != None:
             self.event_callback(self.motion_events)
@@ -110,10 +139,14 @@ class F1Client:
         # look for finished events and disable them
         self.process_finished_events(self.telemetry_events, self.prev_telemetry_events)
         # store as prev events
-        self.prev_telemetry_events = self.telemetry_events
+        self.prev_telemetry_events = self.telemetry_events.copy()
+        # register event time
+        self.last_telemetry_event_time = time.time()
         # notify about events
         if self.event_callback != None:
             self.event_callback(self.telemetry_events)
+        else:
+            print("F1 client: no client subscribed to events")
 
     def process_finished_events(self, events, prev_events):
         for prev_event in prev_events:
@@ -127,6 +160,16 @@ class F1Client:
             if not continue_event:
                 events.append(FeedbackEvent(type=prev_event.type, direction=prev_event.direction, location=prev_event.location, is_enable=False))
 
+    def stop_events(self, events, prev_events):
+        if len(prev_events) == 0:
+            return
+        events.clear()
+        for event in prev_events:
+            if event.is_enable:
+                events.append(FeedbackEvent(type=event.type, direction=event.direction, location=event.location, is_enable=False))
+        prev_events.clear()
+        if self.event_callback != None:
+            self.event_callback(events)
 
 def normalize(value, min, max):
     if (value > max):
