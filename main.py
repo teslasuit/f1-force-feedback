@@ -1,3 +1,11 @@
+import os
+import sys
+import time
+
+# Adding Teslasuit Python API to path before using
+ts_api_path = os.environ['TESLASUIT_PYTHON_API_PATH']
+sys.path.append(ts_api_path)
+
 import f1_client
 import ts_client
 
